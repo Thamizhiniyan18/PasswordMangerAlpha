@@ -7,21 +7,24 @@ import {
   searchPasswordType,
 } from "./typeDefinitions";
 import mongoose from "mongoose";
+import { auth, currentUser } from "@clerk/nextjs";
 
 export const getPassword = async (id: string) => {
   unstable_noStore();
   const isValidId = mongoose.Types.ObjectId.isValid(id);
+  const { userId } = auth();
 
   if (isValidId) {
     try {
-      const password = await passwordModel.findById(id);
+      const password = await passwordModel.find({user_id: userId, _id: id}).lean().exec();
+
       const reducedPassword: passwordType = {
-        account_description: password.account_description,
-        password_score: password.password_score,
-        url: password.url,
-        user_id: password.user_id,
-        username: password.username,
-        password: password.password,
+        account_description: password[0].account_description,
+        password_score: password[0].password_score,
+        url: password[0].url,
+        user_id: password[0].user_id,
+        username: password[0].username,
+        password: password[0].password,
       };
 
       return reducedPassword;
@@ -36,9 +39,12 @@ export const getPassword = async (id: string) => {
 
 export const getPasswords = async () => {
   unstable_noStore();
+
+  const { userId } = auth();
+
   try {
     await dbConnect();
-    const fetchedPasswords = await passwordModel.find({}).lean().exec();
+    const fetchedPasswords = await passwordModel.find({user_id: userId}).lean().exec();
     const reducedPasswords: extendedPasswordType[] = fetchedPasswords.map(
       (password) => ({
         _id: `${password._id}`,
@@ -62,9 +68,12 @@ export const getPasswords = async () => {
 
 export const getPasswordsSearch = async () => {
   unstable_noStore();
+
+  const { userId } = auth();
+
   try {
     await dbConnect();
-    const fetchedPasswords = await passwordModel.find({}).lean().exec();
+    const fetchedPasswords = await passwordModel.find({user_id: userId}).lean().exec();
     const reducedPasswords: searchPasswordType[] = fetchedPasswords.map(
       (password) => ({
         id: `${password._id}`,
